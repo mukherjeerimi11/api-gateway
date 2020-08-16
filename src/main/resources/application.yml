@@ -6,5 +6,12 @@ zuul:
   routes:
     orders:
       path: /order-service/**
+      url: http://localhost:8083/
+    users:
+      path: /user-service/**
       url: http://localhost:8082/
+    user-authentication:
+      path: /user-authentication-service/**
+      url: http://localhost:8081/
+    
   
