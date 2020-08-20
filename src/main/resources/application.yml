@@ -2,16 +2,18 @@
 server:
   port: 9090
 
+#Below part is not required.
+
 zuul:
   routes:
     orders:
       path: /order-service/**
-      url: http://localhost:8083/
+      url: order-service
     users:
       path: /user-service/**
-      url: http://localhost:8082/
+      url: user-service
     user-authentication:
       path: /user-authentication-service/**
-      url: http://localhost:8081/
+      url: user-authentication-service
     
   
