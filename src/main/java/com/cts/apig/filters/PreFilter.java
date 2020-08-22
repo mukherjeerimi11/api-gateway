@@ -1,10 +1,21 @@
 package com.cts.apig.filters;
 
-import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.util.Enumeration;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.cts.apig.jwtfilter.JwtFilter;
 import com.netflix.zuul.ZuulFilter;
 import com.netflix.zuul.context.RequestContext;
 import com.netflix.zuul.exception.ZuulException;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureException;
 
 public class PreFilter extends ZuulFilter{
 
@@ -14,9 +25,52 @@ public class PreFilter extends ZuulFilter{
 		RequestContext ctx = RequestContext.getCurrentContext();
 	    HttpServletRequest request = ctx.getRequest();
 	 
+		final String authHeader = request.getHeader("Authorization");
+
+		final Enumeration<String> headers = request.getHeaderNames();
+		
+		System.out.println("********within do filter1***********");
+
+		// We get the Authorization Header of the incoming request
+		
+		System.out.println("********within do filter2***********");
+
+		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+			throw new ZuulException(new Exception(), 401, "Not a valid authentication authHeader");
+		}
+
+		// and retrieve the token
+		String compactJws = authHeader.substring(7);
+
+		try {
+	           final Claims claims = Jwts.parser().setSigningKey("secretkey").parseClaimsJws(compactJws).getBody();
+	            request.setAttribute("claims", claims);
+		} catch (SignatureException ex) {
+		   // HttpServletResponse hsr = new Http;
+		   // hsr.setStatus(401);
+			throw new ZuulException(new Exception(), 401, "Invalid Token");
+		} catch (MalformedJwtException ex) {
+		   // HttpServletResponse hsr = (HttpServletResponse) response;
+		   // hsr.setStatus(401);
+			throw new ZuulException(new Exception(), 401, "JWT is malformed");
+		}
+
 	    System.out.println("Request Method : " + request.getMethod() + " Request URL : " + request.getRequestURL().toString());
 	    return null;
 	  }
+	
+	private void sendResponse(int responseCode, String responseBody) {
+		final RequestContext ctx = RequestContext.getCurrentContext();
+		ctx.setResponseBody(responseBody);
+		ctx.setResponseStatusCode(responseCode);
+
+
+		try {
+			ctx.getResponse().sendError(responseCode, responseBody);
+		} catch (IOException e) {
+			//log.error(e.getMessage(), e);
+		}
+	}
 
 	@Override
 	public boolean shouldFilter() {
